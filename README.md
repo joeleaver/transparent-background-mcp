@@ -29,7 +29,10 @@ A powerful Model Context Protocol (MCP) server that removes backgrounds from ima
 ### Installation Options
 
 #### Option 1: Direct from GitHub (Recommended)
+
 No installation required! Use directly in your MCP client configuration:
+
+**⚡ Fast Startup**: The server starts quickly with minimal dependencies. Model-specific dependencies (PyTorch, Ultralytics, etc.) are automatically installed only when you first use each model.
 
 ```json
 {
@@ -73,6 +76,21 @@ uvx --from git+https://github.com/joeleaver/transparent-background-mcp.git trans
 # Or if installed locally
 transparent-background-mcp-server
 ```
+
+### 🔄 How Lazy Loading Works
+
+The server uses **smart dependency management** to solve the startup timeout issue:
+
+1. **⚡ Fast Startup**: Only core dependencies (~10MB) are loaded initially
+2. **📦 On-Demand Installation**: Model-specific dependencies are installed when first used:
+   - **BEN2**: `transformers`, `torch`, `transparent-background` (~500MB)
+   - **YOLO11**: `ultralytics`, `torch`, `opencv-python` (~300MB)
+   - **InSPyReNet**: `rembg`, `opencv-python` (~200MB)
+3. **🔄 One-Time Setup**: Dependencies are cached for future use
+4. **📊 Progress Feedback**: Clear status messages during installation
+
+**First use of a model**: ~30-60 seconds (downloading dependencies)
+**Subsequent uses**: ~1-5 seconds (dependencies cached)
 
 ## 🔧 IDE Integration
 
@@ -363,10 +381,18 @@ For advanced users, you can customize model behavior:
 ## 🔧 Development
 
 ### Local Development
+
 ```bash
 # Clone the repository
 git clone https://github.com/joeleaver/transparent-background-mcp.git
 cd transparent-background-mcp
+
+# Create virtual environment (recommended)
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
 
 # Install in development mode
 pip install -e .

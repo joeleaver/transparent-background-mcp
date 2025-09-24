@@ -5,8 +5,10 @@ A local AI-powered background removal MCP server using state-of-the-art models.
 """
 
 import asyncio
+import json
 import logging
 import os
+import time
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server
@@ -23,8 +25,8 @@ from mcp.types import (
 )
 from pydantic import BaseModel, Field
 
-from .models import BEN2Model, InSPyReNetModel, YOLOModel
 from .utils import HardwareDetector, ImageProcessor, ModelManager
+from .utils.dependency_manager import dependency_manager
 
 # Configure logging
 logging.basicConfig(
@@ -72,21 +74,26 @@ server = Server("transparent-background-mcp")
 
 
 async def get_model_instance(model_name: str):
-    """Get or create model instance."""
+    """Get or create model instance with lazy imports."""
     if model_name not in model_cache:
         logger.info(f"Creating new model instance: {model_name}")
-        
+
+        # Lazy import models to avoid import errors at startup
         if model_name.startswith("ben2"):
+            from .models.ben2_model import BEN2Model
             model_cache[model_name] = BEN2Model(model_name)
         elif model_name.startswith("yolo11"):
+            from .models.yolo_model import YOLOModel
             model_cache[model_name] = YOLOModel(model_name)
         elif model_name.startswith("inspyrenet"):
+            from .models.inspyrenet_model import InSPyReNetModel
             model_cache[model_name] = InSPyReNetModel(model_name)
         else:
             # Default to InSPyReNet for unknown models
             logger.warning(f"Unknown model {model_name}, defaulting to inspyrenet-base")
+            from .models.inspyrenet_model import InSPyReNetModel
             model_cache[model_name] = InSPyReNetModel("inspyrenet-base")
-    
+
     return model_cache[model_name]
 
 
@@ -216,6 +223,15 @@ async def handle_list_tools() -> List[Tool]:
                 "required": []
             }
         ),
+        Tool(
+            name="check_dependencies",
+            description="Check dependency installation status for all models",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        ),
     ]
 
 
@@ -233,6 +249,8 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
             return await handle_get_available_models(arguments)
         elif name == "get_system_info":
             return await handle_get_system_info(arguments)
+        elif name == "check_dependencies":
+            return await handle_check_dependencies(arguments)
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
     
@@ -243,6 +261,7 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
 
 async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextContent]:
     """Handle single image background removal."""
+    start_time = time.time()
     try:
         # Parse arguments
         image_data = arguments["image_data"]
@@ -271,9 +290,20 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
             format=output_format
         )
         
+        # Return JSON response
+        response = {
+            "success": True,
+            "message": f"Background removed successfully using {model_name}",
+            "output_image_base64": result_base64,
+            "model_used": model_name,
+            "processing_time_seconds": time.time() - start_time,
+            "output_format": output_format,
+            "image_size": image.size
+        }
+
         return [TextContent(
             type="text",
-            text=f"Background removed successfully using {model_name}. Result: {len(result_base64)} characters of base64 data."
+            text=json.dumps(response)
         )]
         
     except Exception as e:
@@ -448,6 +478,32 @@ async def main():
                 ),
             ),
         )
+
+
+async def handle_check_dependencies(arguments: Dict[str, Any]) -> List[TextContent]:
+    """Handle dependency status check."""
+    try:
+        status = dependency_manager.get_installation_status()
+
+        response = {
+            "success": True,
+            "message": "Dependency status retrieved successfully",
+            "dependencies": status,
+            "summary": {
+                "total_models": len(status),
+                "ready_models": sum(1 for ready in status.values() if ready),
+                "pending_models": sum(1 for ready in status.values() if not ready)
+            }
+        }
+
+        return [TextContent(
+            type="text",
+            text=json.dumps(response)
+        )]
+
+    except Exception as e:
+        logger.error(f"Dependency check failed: {e}")
+        return [TextContent(type="text", text=f"Dependency check failed: {str(e)}")]
 
 
 def cli_main():

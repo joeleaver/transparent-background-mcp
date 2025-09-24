@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "transparent-background-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/joeleaver/transparent-background-mcp.git",
+        "transparent-background-mcp-server"
+      ]
+    }
+  }
+}

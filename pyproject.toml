@@ -23,22 +23,53 @@ classifiers = [
 ]
 
 dependencies = [
+    # Core MCP dependencies
     "mcp>=1.2.0",
+
+    # Essential image processing (always needed)
     "pillow>=10.0.0",
+    "numpy>=1.24.0",
+
+    # Utilities
+    "pydantic>=2.0.0",
+    "psutil>=5.9.0",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+# Model-specific dependencies (installed on-demand)
+ben2 = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "transformers>=4.30.0",
+    "transparent-background>=1.3.4",
+    "huggingface-hub>=0.20.0",
+]
+
+inspyrenet = [
+    "rembg>=2.0.67",
+    "opencv-python>=4.8.0",
+]
+
+yolo = [
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "ultralytics>=8.3.0",
+    "opencv-python>=4.8.0",
+]
+
+# All models (for users who want everything)
+all = [
     "torch>=2.0.0",
     "torchvision>=0.15.0",
     "ultralytics>=8.3.0",
     "transparent-background>=1.3.4",
     "rembg>=2.0.67",
     "huggingface-hub>=0.20.0",
-    "pydantic>=2.0.0",
-    "psutil>=5.9.0",
-    "tqdm>=4.65.0",
-    "numpy>=1.24.0",
+    "transformers>=4.30.0",
     "opencv-python>=4.8.0",
 ]
 
-[project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
