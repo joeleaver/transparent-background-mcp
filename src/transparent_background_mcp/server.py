@@ -178,7 +178,7 @@ async def handle_list_tools() -> List[Tool]:
                     "model_name": {
                         "type": "string",
                         "description": "YOLO model to use",
-                        "enum": ["yolo11s-seg", "yolo11l-seg"],
+                        "enum": ["yolo11s-seg", "yolo11m-seg", "yolo11l-seg"],
                         "default": "yolo11m-seg"
                     },
                     "target_classes": {
