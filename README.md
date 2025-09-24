@@ -19,6 +19,33 @@ A powerful Model Context Protocol (MCP) server that removes backgrounds from ima
 - **⚡ Batch Processing**: Process multiple images efficiently
 - **🔧 Hardware Optimization**: Automatic model recommendations based on your system
 
+## 🖼️ Visual Results Comparison
+
+See the difference between our curated models with a real test image:
+
+<div align="center">
+
+### Original Image
+<img src="model_test_results/original_comparison.jpg" alt="Original test image" width="200"/>
+
+### Model Results
+
+| **BEN2 (Default)** | **InSPyReNet (Portraits)** |
+|:---:|:---:|
+| <img src="model_test_results/ben2-base_result.png" alt="BEN2 result" width="250"/> | <img src="model_test_results/inspyrenet-base_result.png" alt="InSPyReNet result" width="250"/> |
+| **State-of-the-art quality** | **Excellent for portraits** |
+| Load: 11.5s, Process: 10.7s | Load: 1.1s, Process: 1.3s |
+
+| **YOLO11-L (Balanced)** | **YOLO11-S (Speed)** |
+|:---:|:---:|
+| <img src="model_test_results/yolo11l-seg_result.png" alt="YOLO11-L result" width="250"/> | <img src="model_test_results/yolo11s-seg_result.png" alt="YOLO11-S result" width="250"/> |
+| **Fast & balanced** | **Fastest processing** |
+| Load: 0.1s, Process: 0.6s | Load: 0.2s, Process: 0.3s |
+
+</div>
+
+> 💡 **Tip**: All models support both file paths and base64 input. BEN2 is used by default for the highest quality results.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -189,7 +216,7 @@ For any MCP-compatible client, use this standard configuration:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "transparent-background-mcp": {
       "command": "uvx",
       "args": [
@@ -214,7 +241,7 @@ Remove background from a single image using AI models.
 
 **Parameters:**
 - `image_data` (required): Base64 encoded image data
-- `model_name` (optional): Model to use (`ben2-base`, `inspyrenet-base`, `yolo11m-seg`, etc.)
+- `model_name` (optional): Model to use (`ben2-base`, `inspyrenet-base`, `yolo11s-seg`, `yolo11l-seg`)
 - `output_format` (optional): Output format (`PNG`, `JPEG`)
 - `confidence_threshold` (optional): Detection confidence threshold (0.0-1.0)
 
@@ -232,7 +259,7 @@ Segment specific objects using YOLO11 models.
 
 **Parameters:**
 - `image_data` (required): Base64 encoded image data
-- `model_name` (optional): YOLO model variant (`yolo11n-seg` to `yolo11x-seg`)
+- `model_name` (optional): YOLO model variant (`yolo11s-seg` or `yolo11l-seg`)
 - `target_classes` (optional): Specific object classes to segment (e.g., `["person", "car"]`)
 - `confidence_threshold` (optional): Detection confidence threshold
 - `combine_masks` (optional): Whether to combine multiple object masks
@@ -247,13 +274,10 @@ Get system hardware information and capabilities.
 
 | Model | Type | Size | VRAM | Performance | Specialty |
 |-------|------|------|------|-------------|-----------|
-| **BEN2** | Background Removal | 213MB | 3.5GB | Excellent | Hair matting, fine details |
-| **YOLO11x-seg** | Segmentation | 136MB | 2.8GB | Excellent | Object-specific removal |
+| **BEN2** | Background Removal | 213MB | 3.5GB | Excellent | Hair matting, fine details (default) |
+| **InSPyReNet** | Background Removal | 65MB | 2.0GB | Very Good | Portraits, stable results |
 | **YOLO11l-seg** | Segmentation | 87MB | 2.2GB | Very Good | Balanced performance |
-| **YOLO11m-seg** | Segmentation | 50MB | 1.8GB | Good | General purpose |
 | **YOLO11s-seg** | Segmentation | 22MB | 1.2GB | Good | Fast processing |
-| **YOLO11n-seg** | Segmentation | 6MB | 0.8GB | Fair | Minimal resources |
-| **InSPyReNet** | Background Removal | 65MB | 2.0GB | Very Good | Stable, reliable |
 
 ## 📋 Hardware Requirements
 
@@ -361,7 +385,7 @@ MODEL_CACHE_DIR=~/.cache/transparent-background-mcp
 FORCE_CPU=false
 
 # Default model
-DEFAULT_MODEL=inspyrenet-base
+DEFAULT_MODEL=ben2-base
 
 # Logging level
 LOG_LEVEL=INFO
@@ -404,7 +428,7 @@ For advanced users, you can customize model behavior:
 - **Alternative**: Try a different model or clear cache with `get_system_info` tool
 
 #### GPU out of memory errors
-- **Solution**: Use a smaller model (e.g., `yolo11n-seg` instead of `yolo11x-seg`)
+- **Solution**: Use a smaller model (e.g., `yolo11s-seg` instead of `yolo11l-seg`)
 - **Alternative**: Set `FORCE_CPU=true` to use CPU processing
 
 #### Slow processing on CPU
