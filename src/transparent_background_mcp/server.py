@@ -26,7 +26,7 @@ from mcp.types import (
 from pydantic import BaseModel, Field
 
 from .utils import HardwareDetector, ImageProcessor, ModelManager
-from .utils.dependency_manager import dependency_manager
+
 
 # Configure logging
 logging.basicConfig(
@@ -74,30 +74,22 @@ server = Server("transparent-background-mcp")
 
 
 async def get_model_instance(model_name: str):
-    """Get or create model instance with lazy imports."""
+    """Get or create model instance."""
     if model_name not in model_cache:
         logger.info(f"Creating new model instance: {model_name}")
-
-        # Lazy import models to avoid import errors at startup
         if model_name.startswith("ben2"):
-            from .models import get_ben2_model
-            BEN2Model = get_ben2_model()
+            from .models import BEN2Model
             model_cache[model_name] = BEN2Model(model_name)
         elif model_name.startswith("yolo11"):
-            from .models import get_yolo_model
-            YOLOModel = get_yolo_model()
+            from .models import YOLOModel
             model_cache[model_name] = YOLOModel(model_name)
         elif model_name.startswith("inspyrenet"):
-            from .models import get_inspyrenet_model
-            InSPyReNetModel = get_inspyrenet_model()
+            from .models import InSPyReNetModel
             model_cache[model_name] = InSPyReNetModel(model_name)
         else:
-            # Default to BEN2 for unknown models
             logger.warning(f"Unknown model {model_name}, defaulting to ben2-base")
-            from .models import get_ben2_model
-            BEN2Model = get_ben2_model()
+            from .models import BEN2Model
             model_cache[model_name] = BEN2Model("ben2-base")
-
     return model_cache[model_name]
 
 
@@ -107,7 +99,7 @@ async def handle_list_tools() -> List[Tool]:
     return [
         Tool(
             name="remove_background",
-            description="Remove background from a single image using AI models",
+            description="Remove background from a single image using AI models.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -140,7 +132,7 @@ async def handle_list_tools() -> List[Tool]:
         ),
         Tool(
             name="batch_remove_background",
-            description="Remove background from multiple images using AI models",
+            description="Remove background from multiple images using AI models.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -174,7 +166,7 @@ async def handle_list_tools() -> List[Tool]:
         ),
         Tool(
             name="yolo_segment_objects",
-            description="Segment specific objects using YOLO11 models",
+            description="Segment specific objects using YOLO11 models.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -227,15 +219,7 @@ async def handle_list_tools() -> List[Tool]:
                 "required": []
             }
         ),
-        Tool(
-            name="check_dependencies",
-            description="Check dependency installation status for all models",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        ),
+
     ]
 
 
@@ -253,8 +237,7 @@ async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextCon
             return await handle_get_available_models(arguments)
         elif name == "get_system_info":
             return await handle_get_system_info(arguments)
-        elif name == "check_dependencies":
-            return await handle_check_dependencies(arguments)
+
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
     
@@ -284,16 +267,16 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
         
         # Process image
         result_image = await model.remove_background(
-            image, 
+            image,
             confidence_threshold=confidence_threshold
         )
-        
+
         # Encode result
         result_base64 = image_processor.encode_image_to_base64(
-            result_image, 
+            result_image,
             format=output_format
         )
-        
+
         # Return JSON response
         response = {
             "success": True,
@@ -304,6 +287,8 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
             "output_format": output_format,
             "image_size": image.size
         }
+
+
 
         return [TextContent(
             type="text",
@@ -317,16 +302,21 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
 
 async def handle_batch_remove_background(arguments: Dict[str, Any]) -> List[TextContent]:
     """Handle batch image background removal."""
+    start_time = time.time()
     try:
         # Parse arguments
         images_data = arguments["images_data"]
         model_name = arguments.get("model_name", "ben2-base")
         output_format = arguments.get("output_format", "PNG")
         confidence_threshold = arguments.get("confidence_threshold", 0.5)
-        
+
         if not images_data:
-            return [TextContent(type="text", text="No images provided")]
-        
+            return [TextContent(type="text", text=json.dumps({
+                "success": False,
+                "message": "No images provided",
+                "model_used": model_name
+            }))]
+
         # Load images (from file paths or base64)
         images = []
         for i, image_data in enumerate(images_data):
@@ -336,17 +326,21 @@ async def handle_batch_remove_background(arguments: Dict[str, Any]) -> List[Text
                 images.append(image)
             except Exception as e:
                 logger.error(f"Failed to load image {i}: {e}")
-                return [TextContent(type="text", text=f"Failed to load image {i}: {str(e)}")]
-        
+                return [TextContent(type="text", text=json.dumps({
+                    "success": False,
+                    "message": f"Failed to load image {i}: {str(e)}",
+                    "model_used": model_name
+                }))]
+
         # Get model instance
         model = await get_model_instance(model_name)
-        
+
         # Process images
         result_images = await model.batch_remove_background(
             images,
             confidence_threshold=confidence_threshold
         )
-        
+
         # Encode results
         results_base64 = []
         for result_image in result_images:
@@ -355,19 +349,34 @@ async def handle_batch_remove_background(arguments: Dict[str, Any]) -> List[Text
                 format=output_format
             )
             results_base64.append(result_base64)
-        
-        return [TextContent(
-            type="text",
-            text=f"Batch background removal completed using {model_name}. Processed {len(results_base64)} images."
-        )]
-        
+
+        # Build JSON response
+        response = {
+            "success": True,
+            "message": f"Batch background removal completed using {model_name}",
+            "outputs_base64": results_base64,
+            "model_used": model_name,
+            "processing_time_seconds": time.time() - start_time,
+            "output_format": output_format,
+            "processed_count": len(results_base64),
+            "image_sizes": [img.size for img in images],
+        }
+
+
+        return [TextContent(type="text", text=json.dumps(response))]
+
     except Exception as e:
         logger.error(f"Batch background removal failed: {e}")
-        return [TextContent(type="text", text=f"Batch background removal failed: {str(e)}")]
+        return [TextContent(type="text", text=json.dumps({
+            "success": False,
+            "message": f"Batch background removal failed: {str(e)}",
+            "model_used": arguments.get("model_name", "ben2-base")
+        }))]
 
 
 async def handle_yolo_segment_objects(arguments: Dict[str, Any]) -> List[TextContent]:
     """Handle YOLO object segmentation."""
+    start_time = time.time()
     try:
         # Parse arguments
         image_data = arguments["image_data"]
@@ -396,19 +405,31 @@ async def handle_yolo_segment_objects(arguments: Dict[str, Any]) -> List[TextCon
         # Encode result
         result_base64 = image_processor.encode_image_to_base64(result_image, format="PNG")
 
-        # Get detected classes info
+        # Build JSON response
         classes_info = ""
         if target_classes:
             classes_info = f" for classes: {', '.join(target_classes)}"
+        response = {
+            "success": True,
+            "message": f"Object segmentation completed using {model_name}{classes_info}",
+            "output_image_base64": result_base64,
+            "model_used": model_name,
+            "processing_time_seconds": time.time() - start_time,
+            "output_format": "PNG",
+            "image_size": image.size,
+            "target_classes": target_classes,
+        }
 
-        return [TextContent(
-            type="text",
-            text=f"Object segmentation completed using {model_name}{classes_info}. Result: {len(result_base64)} characters of base64 data."
-        )]
+
+        return [TextContent(type="text", text=json.dumps(response))]
 
     except Exception as e:
         logger.error(f"YOLO segmentation failed: {e}")
-        return [TextContent(type="text", text=f"YOLO segmentation failed: {str(e)}")]
+        return [TextContent(type="text", text=json.dumps({
+            "success": False,
+            "message": f"YOLO segmentation failed: {str(e)}",
+            "model_used": arguments.get("model_name", "yolo11m-seg")
+        }))]
 
 
 async def handle_get_available_models(arguments: Dict[str, Any]) -> List[TextContent]:
@@ -484,30 +505,7 @@ async def main():
         )
 
 
-async def handle_check_dependencies(arguments: Dict[str, Any]) -> List[TextContent]:
-    """Handle dependency status check."""
-    try:
-        status = dependency_manager.get_installation_status()
 
-        response = {
-            "success": True,
-            "message": "Dependency status retrieved successfully",
-            "dependencies": status,
-            "summary": {
-                "total_models": len(status),
-                "ready_models": sum(1 for ready in status.values() if ready),
-                "pending_models": sum(1 for ready in status.values() if not ready)
-            }
-        }
-
-        return [TextContent(
-            type="text",
-            text=json.dumps(response)
-        )]
-
-    except Exception as e:
-        logger.error(f"Dependency check failed: {e}")
-        return [TextContent(type="text", text=f"Dependency check failed: {str(e)}")]
 
 
 def cli_main():

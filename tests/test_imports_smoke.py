@@ -10,8 +10,7 @@ def test_package_imports_version():
     assert isinstance(__version__, str)
 
 
-def test_models_lazy_import():
-    from transparent_background_mcp.models import get_ben2_model
-    BEN2Model = get_ben2_model()
+def test_models_import():
+    from transparent_background_mcp.models import BEN2Model
     assert BEN2Model.__name__ == "BEN2Model"
 

@@ -14,7 +14,7 @@ from PIL import Image
 import io
 
 # Import the server components
-from transparent_background_mcp.models import get_ben2_model, get_inspyrenet_model, get_yolo_model
+from transparent_background_mcp.models import BEN2Model, InSPyReNetModel, YOLOModel
 from transparent_background_mcp.utils import HardwareDetector, ImageProcessor, ModelManager
 
 
@@ -68,15 +68,13 @@ async def main():
     
     # Test different models
     models_to_test = [
-        ("ben2-base", get_ben2_model),
-        ("inspyrenet-base", get_inspyrenet_model),
-        ("yolo11s-seg", get_yolo_model),
-        ("yolo11l-seg", get_yolo_model),
+        ("ben2-base", BEN2Model),
+        ("inspyrenet-base", InSPyReNetModel),
+        ("yolo11s-seg", YOLOModel),
+        ("yolo11l-seg", YOLOModel),
     ]
 
-    # Only test BEN2 if we have good hardware
-    if system_info['gpu']['available'] and system_info['gpu']['total_vram_gb'] >= 4:
-        models_to_test.insert(0, ("ben2-base", get_ben2_model))
+
     
     print(f"\n🔄 Testing {len(models_to_test)} models...")
     
@@ -84,8 +82,8 @@ async def main():
         print(f"\n--- Testing {model_name} ---")
         
         try:
-            # Initialize model (get the class from lazy import function)
-            ModelClass = model_class()
+            # Initialize model
+            ModelClass = model_class
             model = ModelClass(model_name)
             
             # Load model

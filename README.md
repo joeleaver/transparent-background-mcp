@@ -50,92 +50,23 @@ See the difference between our curated models with a real test image:
 
 ### Prerequisites
 - Python 3.8+
-- [uv](https://docs.astral.sh/uv/) package manager
 - 4GB+ RAM (8GB+ recommended)
 - Optional: NVIDIA GPU with 4GB+ VRAM for faster processing
 
-### Installation Options
-
-#### Option 1: Direct from GitHub (Recommended)
-
-No installation required! Use directly in your MCP client configuration:
-
-**⚡ Fast Startup**: The server starts quickly with minimal dependencies. Model-specific dependencies (PyTorch, Ultralytics, etc.) are automatically installed only when you first use each model.
-
-```json
-{
-  "mcpServers": {
-    "transparent-background-mcp": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/joeleaver/transparent-background-mcp.git",
-        "transparent-background-mcp-server"
-      ],
-      "env": {
-        "MODEL_CACHE_DIR": "~/.cache/transparent-background-mcp"
-      }
-    }
-  }
-}
-```
-
-#### Option 1a: Pre-install model dependencies with extras (no runtime installs)
-
-If you prefer everything to work out-of-the-box with no on-demand installs, use `uvx` with the appropriate extras to pre-install the model dependencies:
-
-- BEN2 (default, best quality):
-  - Windows/macOS/Linux:
-    - Command: `uvx --from "git+https://github.com/joeleaver/transparent-background-mcp.git#egg=transparent-background-mcp[ben2]" transparent-background-mcp-server`
-- YOLO (speed):
-  - `uvx --from "git+https://github.com/joeleaver/transparent-background-mcp.git#egg=transparent-background-mcp[yolo]" transparent-background-mcp-server`
-- InSPyReNet (portraits):
-  - `uvx --from "git+https://github.com/joeleaver/transparent-background-mcp.git#egg=transparent-background-mcp[inspyrenet]" transparent-background-mcp-server`
-- All models:
-  - `uvx --from "git+https://github.com/joeleaver/transparent-background-mcp.git#egg=transparent-background-mcp[all]" transparent-background-mcp-server`
-
-These install the optional dependencies defined in `pyproject.toml` ahead of time, avoiding runtime installation during first use.
-
-
-#### Option 2: Local Installation
-```bash
-# Install from GitHub
-pip install git+https://github.com/joeleaver/transparent-background-mcp.git
-
-# Or clone and install locally
-git clone https://github.com/joeleaver/transparent-background-mcp.git
-cd transparent-background-mcp
-pip install -e .
-```
-
-#### Option 3: PyPI (when available)
+### Installation (one line)
 ```bash
 pip install transparent-background-mcp
 ```
 
-### Testing the Installation
-```bash
-# Test the server directly
-uvx --from git+https://github.com/joeleaver/transparent-background-mcp.git transparent-background-mcp-server
+- This installs the MCP server and all required dependencies (PyTorch, Ultralytics, rembg, etc.).
+- Model weights are downloaded automatically on first use by the underlying libraries.
 
-# Or if installed locally
+### Run the server
+```bash
 transparent-background-mcp-server
 ```
 
-### 🔄 How Lazy Loading Works
-
-The server uses **smart dependency management** to solve the startup timeout issue:
-
-1. **⚡ Fast Startup**: Only core dependencies (~10MB) are loaded initially
-2. **📦 On-Demand Installation**: Model-specific dependencies are installed when first used:
-   - **BEN2**: `transformers`, `torch`, `transparent-background` (~500MB)
-   - **YOLO11**: `ultralytics`, `torch`, `opencv-python` (~300MB)
-   - **InSPyReNet**: `rembg`, `opencv-python` (~200MB)
-3. **🔄 One-Time Setup**: Dependencies are cached for future use
-4. **📊 Progress Feedback**: Clear status messages during installation
-
-**First use of a model**: ~30-60 seconds (downloading dependencies)
-**Subsequent uses**: ~1-5 seconds (dependencies cached)
+If you want to warm up models (download weights ahead of time), just run one quick request per model (e.g., process a tiny image once). Subsequent runs will be fast.
 
 ## 🔧 IDE Integration
 
@@ -148,12 +79,7 @@ The server uses **smart dependency management** to solve the startup timeout iss
 {
   "mcpServers": {
     "transparent-background-mcp": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/joeleaver/transparent-background-mcp.git",
-        "transparent-background-mcp-server"
-      ],
+      "command": "transparent-background-mcp-server",
       "env": {
         "MODEL_CACHE_DIR": "~/.cache/transparent-background-mcp",
         "LOG_LEVEL": "INFO"
@@ -163,25 +89,6 @@ The server uses **smart dependency management** to solve the startup timeout iss
 }
 ```
 
-**Alternative using uv run:**
-```json
-{
-  "mcpServers": {
-    "transparent-background-mcp": {
-      "command": "uv",
-      "args": [
-        "run",
-        "--from",
-        "git+https://github.com/joeleaver/transparent-background-mcp.git",
-        "transparent-background-mcp-server"
-      ],
-      "env": {
-        "MODEL_CACHE_DIR": "~/.cache/transparent-background-mcp"
-      }
-    }
-  }
-}
-```
 
 ### VSCode with GitHub Copilot
 
@@ -191,12 +98,7 @@ Add to your workspace `.vscode/mcp.json`:
 {
   "servers": {
     "transparent-background-mcp": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/joeleaver/transparent-background-mcp.git",
-        "transparent-background-mcp-server"
-      ],
+      "command": "transparent-background-mcp-server",
       "env": {
         "MODEL_CACHE_DIR": "~/.cache/transparent-background-mcp"
       }
@@ -213,12 +115,7 @@ In Cursor Settings → MCP Servers:
 {
   "mcpServers": {
     "transparent-background-mcp": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/joeleaver/transparent-background-mcp.git",
-        "transparent-background-mcp-server"
-      ],
+      "command": "transparent-background-mcp-server",
       "env": {
         "MODEL_CACHE_DIR": "~/.cache/transparent-background-mcp"
       }
@@ -235,12 +132,7 @@ For any MCP-compatible client, use this standard configuration:
 {
   "servers": {
     "transparent-background-mcp": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/joeleaver/transparent-background-mcp.git",
-        "transparent-background-mcp-server"
-      ],
+      "command": "transparent-background-mcp-server",
       "env": {
         "MODEL_CACHE_DIR": "~/.cache/transparent-background-mcp"
       }
@@ -257,7 +149,7 @@ For any MCP-compatible client, use this standard configuration:
 Remove background from a single image using AI models.
 
 **Parameters:**
-- `image_data` (required): Base64 encoded image data
+- `image_data` (required): Image file path or base64 encoded image data
 - `model_name` (optional): Model to use (`ben2-base`, `inspyrenet-base`, `yolo11s-seg`, `yolo11l-seg`)
 - `output_format` (optional): Output format (`PNG`, `JPEG`)
 - `confidence_threshold` (optional): Detection confidence threshold (0.0-1.0)
@@ -422,8 +314,7 @@ For advanced users, you can customize model behavior:
 {
   "mcpServers": {
     "transparent-background-mcp": {
-      "command": "uvx",
-      "args": ["--from", "git+https://github.com/joeleaver/transparent-background-mcp.git", "transparent-background-mcp-server"],
+      "command": "transparent-background-mcp-server",
       "env": {
         "MODEL_CACHE_DIR": "/custom/cache/path",
         "DEFAULT_MODEL": "ben2-base",
@@ -452,9 +343,6 @@ For advanced users, you can customize model behavior:
 - **Expected**: CPU processing is slower than GPU
 - **Solution**: Consider upgrading to a GPU-enabled system or use smaller models
 
-#### "uvx command not found"
-- **Solution**: Install uv package manager: `pip install uv`
-- **Alternative**: Use `pip install git+https://github.com/joeleaver/transparent-background-mcp.git`
 
 ### Performance Tips
 
@@ -505,20 +393,13 @@ mypy src/
 ### Testing with MCP Inspector
 ```bash
 # Test the server locally
-uv run src/transparent_background_mcp/server.py
+transparent-background-mcp-server
 
 # Test with MCP Inspector
-npx @modelcontextprotocol/inspector uv run src/transparent_background_mcp/server.py
+npx @modelcontextprotocol/inspector transparent-background-mcp-server
 ```
 
 ### Testing GitHub Installation
-```bash
-# Test direct GitHub installation
-uvx --from git+https://github.com/joeleaver/transparent-background-mcp.git transparent-background-mcp-server
-
-# Test with MCP Inspector from GitHub
-npx @modelcontextprotocol/inspector uvx --from git+https://github.com/joeleaver/transparent-background-mcp.git transparent-background-mcp-server
-```
 
 ## 📄 License
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "transparent-background-mcp"
-version = "0.1.1"
+version = "0.1.2"
 description = "Local AI-powered background removal MCP server"
 authors = [{name = "Joe Leaver", email = "joe@example.com"}]
 license = {text = "MIT"}
@@ -26,9 +26,19 @@ dependencies = [
     # Core MCP dependencies
     "mcp>=1.2.0",
 
-    # Essential image processing (always needed)
+    # Essential image processing
     "pillow>=10.0.0",
     "numpy>=1.24.0",
+
+    # Model frameworks (install up front)
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "transformers>=4.30.0",
+    "transparent-background>=1.3.4",
+    "huggingface-hub>=0.20.0",
+    "rembg>=2.0.67",
+    "opencv-python>=4.8.0",
+    "ultralytics>=8.3.0",
 
     # Utilities
     "pydantic>=2.0.0",
@@ -37,38 +47,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Model-specific dependencies (installed on-demand)
-ben2 = [
-    "torch>=2.0.0",
-    "torchvision>=0.15.0",
-    "transformers>=4.30.0",
-    "transparent-background>=1.3.4",
-    "huggingface-hub>=0.20.0",
-]
 
-inspyrenet = [
-    "rembg>=2.0.67",
-    "opencv-python>=4.8.0",
-]
-
-yolo = [
-    "torch>=2.0.0",
-    "torchvision>=0.15.0",
-    "ultralytics>=8.3.0",
-    "opencv-python>=4.8.0",
-]
-
-# All models (for users who want everything)
-all = [
-    "torch>=2.0.0",
-    "torchvision>=0.15.0",
-    "ultralytics>=8.3.0",
-    "transparent-background>=1.3.4",
-    "rembg>=2.0.67",
-    "huggingface-hub>=0.20.0",
-    "transformers>=4.30.0",
-    "opencv-python>=4.8.0",
-]
 
 dev = [
     "pytest>=7.0.0",
