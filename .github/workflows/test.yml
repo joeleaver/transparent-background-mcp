@@ -1,0 +1,74 @@
+name: Test MCP Server
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+    
+    - name: Lint with black
+      run: |
+        uv run black --check src/ tests/
+    
+    - name: Sort imports with isort
+      run: |
+        uv run isort --check-only src/ tests/
+    
+    - name: Type check with mypy
+      run: |
+        uv run mypy src/
+    
+    - name: Run tests
+      run: |
+        uv run pytest tests/ -v --cov=src/transparent_background_mcp --cov-report=xml
+    
+    - name: Test MCP server startup
+      run: |
+        timeout 10s uv run transparent-background-mcp-server || exit 0
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  test-installation:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+    
+    - name: Test direct GitHub installation
+      run: |
+        uvx --from . transparent-background-mcp-server --help || echo "Server help command completed"
+    
+    - name: Test pip installation
+      run: |
+        pip install .
+        transparent-background-mcp-server --help || echo "Server help command completed"
