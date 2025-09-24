@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "transparent-background-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "C:\\\\Users\\\\joe\\\\Dropbox\\\\Dev\\\\transparent-background-mcp\\\\dist\\\\transparent_background_mcp-0.1.0-py3-none-any.whl",
+        "transparent-background-mcp-server"
+      ]
+    }
+  }
+}

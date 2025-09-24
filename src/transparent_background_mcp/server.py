@@ -80,18 +80,22 @@ async def get_model_instance(model_name: str):
 
         # Lazy import models to avoid import errors at startup
         if model_name.startswith("ben2"):
-            from .models.ben2_model import BEN2Model
+            from .models import get_ben2_model
+            BEN2Model = get_ben2_model()
             model_cache[model_name] = BEN2Model(model_name)
         elif model_name.startswith("yolo11"):
-            from .models.yolo_model import YOLOModel
+            from .models import get_yolo_model
+            YOLOModel = get_yolo_model()
             model_cache[model_name] = YOLOModel(model_name)
         elif model_name.startswith("inspyrenet"):
-            from .models.inspyrenet_model import InSPyReNetModel
+            from .models import get_inspyrenet_model
+            InSPyReNetModel = get_inspyrenet_model()
             model_cache[model_name] = InSPyReNetModel(model_name)
         else:
             # Default to BEN2 for unknown models
             logger.warning(f"Unknown model {model_name}, defaulting to ben2-base")
-            from .models.ben2_model import BEN2Model
+            from .models import get_ben2_model
+            BEN2Model = get_ben2_model()
             model_cache[model_name] = BEN2Model("ben2-base")
 
     return model_cache[model_name]
