@@ -4,7 +4,7 @@ Transparent Background MCP Server
 A local AI-powered background removal MCP server using state-of-the-art models.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 __author__ = "Joe Leaver"
 __email__ = "joe@example.com"
 

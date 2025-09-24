@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "transparent-background-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "Local AI-powered background removal MCP server"
 authors = [{name = "Joe Leaver", email = "joe@example.com"}]
 license = {text = "MIT"}
@@ -100,3 +100,12 @@ python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+
+# Ensure setuptools discovers packages in src/ layout
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["transparent_background_mcp*"]
