@@ -15,16 +15,70 @@ class ImageProcessor:
     """Handles image encoding, decoding, and basic processing operations."""
     
     @staticmethod
+    def load_image(image_input: str) -> Image.Image:
+        """
+        Load image from either file path or base64 data.
+
+        Args:
+            image_input: Either a file path or base64 encoded image data (with or without data URL prefix)
+
+        Returns:
+            PIL Image object
+
+        Raises:
+            ValueError: If image data is invalid or file not found
+        """
+        try:
+            # Check if it's a file path
+            if not image_input.startswith('data:') and not ImageProcessor._is_base64(image_input):
+                # Try to load as file path
+                from pathlib import Path
+                image_path = Path(image_input)
+                if image_path.exists() and image_path.is_file():
+                    image = Image.open(image_path)
+                    logger.debug(f"Loaded image from file: {image_path}, size: {image.size}, mode: {image.mode}")
+                else:
+                    raise ValueError(f"File not found: {image_input}")
+            else:
+                # Handle as base64 data
+                image = ImageProcessor.decode_base64_image(image_input)
+
+            # Convert to RGB if necessary (handles RGBA, P, etc.)
+            if image.mode not in ('RGB', 'RGBA'):
+                if image.mode == 'P' and 'transparency' in image.info:
+                    image = image.convert('RGBA')
+                else:
+                    image = image.convert('RGB')
+
+            return image
+
+        except Exception as e:
+            logger.error(f"Failed to load image: {e}")
+            raise ValueError(f"Invalid image input: {e}")
+
+    @staticmethod
+    def _is_base64(s: str) -> bool:
+        """Check if string is valid base64."""
+        try:
+            if len(s) < 4:
+                return False
+            # Check if it's valid base64
+            base64.b64decode(s, validate=True)
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
     def decode_base64_image(base64_data: str) -> Image.Image:
         """
         Decode base64 image data to PIL Image.
-        
+
         Args:
             base64_data: Base64 encoded image data (with or without data URL prefix)
-            
+
         Returns:
             PIL Image object
-            
+
         Raises:
             ValueError: If image data is invalid
         """
@@ -32,23 +86,16 @@ class ImageProcessor:
             # Remove data URL prefix if present
             if base64_data.startswith('data:'):
                 base64_data = base64_data.split(',', 1)[1]
-            
+
             # Decode base64 data
             image_bytes = base64.b64decode(base64_data)
-            
+
             # Create PIL Image
             image = Image.open(io.BytesIO(image_bytes))
-            
-            # Convert to RGB if necessary (handles RGBA, P, etc.)
-            if image.mode not in ('RGB', 'RGBA'):
-                if image.mode == 'P' and 'transparency' in image.info:
-                    image = image.convert('RGBA')
-                else:
-                    image = image.convert('RGB')
-                    
+
             logger.debug(f"Decoded image: {image.size}, mode: {image.mode}")
             return image
-            
+
         except Exception as e:
             logger.error(f"Failed to decode base64 image: {e}")
             raise ValueError(f"Invalid image data: {e}")

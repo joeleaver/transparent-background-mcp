@@ -46,7 +46,7 @@ model_cache: Dict[str, Any] = {}
 
 class RemoveBackgroundRequest(BaseModel):
     """Request model for background removal."""
-    image_data: str = Field(description="Base64 encoded image data")
+    image_data: str = Field(description="Image file path or base64 encoded image data")
     model_name: str = Field(default="inspyrenet-base", description="Model to use for background removal")
     output_format: str = Field(default="PNG", description="Output format (PNG, JPEG)")
     confidence_threshold: float = Field(default=0.5, description="Confidence threshold for detection")
@@ -109,7 +109,7 @@ async def handle_list_tools() -> List[Tool]:
                 "properties": {
                     "image_data": {
                         "type": "string",
-                        "description": "Base64 encoded image data (with or without data URL prefix)"
+                        "description": "Image file path or base64 encoded image data (with or without data URL prefix)"
                     },
                     "model_name": {
                         "type": "string",
@@ -143,7 +143,7 @@ async def handle_list_tools() -> List[Tool]:
                     "images_data": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "List of base64 encoded image data"
+                        "description": "List of image file paths or base64 encoded image data"
                     },
                     "model_name": {
                         "type": "string",
@@ -176,7 +176,7 @@ async def handle_list_tools() -> List[Tool]:
                 "properties": {
                     "image_data": {
                         "type": "string",
-                        "description": "Base64 encoded image data"
+                        "description": "Image file path or base64 encoded image data"
                     },
                     "model_name": {
                         "type": "string",
@@ -269,8 +269,8 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
         output_format = arguments.get("output_format", "PNG")
         confidence_threshold = arguments.get("confidence_threshold", 0.5)
         
-        # Decode image
-        image = image_processor.decode_base64_image(image_data)
+        # Load image (from file path or base64)
+        image = image_processor.load_image(image_data)
         
         # Resize if too large
         image = image_processor.resize_image_if_needed(image, max_size=(2048, 2048))
@@ -323,16 +323,16 @@ async def handle_batch_remove_background(arguments: Dict[str, Any]) -> List[Text
         if not images_data:
             return [TextContent(type="text", text="No images provided")]
         
-        # Decode images
+        # Load images (from file paths or base64)
         images = []
         for i, image_data in enumerate(images_data):
             try:
-                image = image_processor.decode_base64_image(image_data)
+                image = image_processor.load_image(image_data)
                 image = image_processor.resize_image_if_needed(image, max_size=(2048, 2048))
                 images.append(image)
             except Exception as e:
-                logger.error(f"Failed to decode image {i}: {e}")
-                return [TextContent(type="text", text=f"Failed to decode image {i}: {str(e)}")]
+                logger.error(f"Failed to load image {i}: {e}")
+                return [TextContent(type="text", text=f"Failed to load image {i}: {str(e)}")]
         
         # Get model instance
         model = await get_model_instance(model_name)
@@ -372,8 +372,8 @@ async def handle_yolo_segment_objects(arguments: Dict[str, Any]) -> List[TextCon
         confidence_threshold = arguments.get("confidence_threshold", 0.5)
         combine_masks = arguments.get("combine_masks", True)
 
-        # Decode image
-        image = image_processor.decode_base64_image(image_data)
+        # Load image (from file path or base64)
+        image = image_processor.load_image(image_data)
 
         # Resize if too large
         image = image_processor.resize_image_if_needed(image, max_size=(2048, 2048))
