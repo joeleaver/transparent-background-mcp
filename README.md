@@ -154,14 +154,21 @@ Remove background from a single image using AI models.
 - `output_format` (optional): Output format (`PNG`, `JPEG`)
 - `confidence_threshold` (optional): Detection confidence threshold (0.0-1.0)
 
+Note: When `image_data` is a file path, the output image is also saved next to the input file by default, using the same filename with a suffix and appropriate extension.
+- Default suffix: `-no-bg` (can be changed via `OUTPUT_SUFFIX` env var)
+- Example: `photo.jpg` -> `photo-no-bg.png`
+- The response still includes base64 data for clients that prefer inline content.
+
 ### `batch_remove_background`
 Process multiple images efficiently.
 
 **Parameters:**
-- `images_data` (required): Array of base64 encoded image data
+- `images_data` (required): Array of image file paths or base64 image data
 - `model_name` (optional): Model to use
 - `output_format` (optional): Output format
 - `confidence_threshold` (optional): Detection confidence threshold
+
+Note: For any entries that are file paths, outputs are saved alongside each input file using the same default suffix behavior as above (e.g., `image.jpg` -> `image-no-bg.png`). The response also includes base64-encoded outputs.
 
 ### `yolo_segment_objects`
 Segment specific objects using YOLO11 models.

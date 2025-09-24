@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server
@@ -271,7 +272,33 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
             confidence_threshold=confidence_threshold
         )
 
-        # Encode result
+        # Optionally save result to disk if input was a file path
+        output_file_path = None
+        try:
+            if not image_data.startswith('data:') and not ImageProcessor._is_base64(image_data):
+                in_path = Path(image_data)
+                if in_path.exists() and in_path.is_file():
+                    suffix = os.getenv("OUTPUT_SUFFIX", "-no-bg")
+                    ext = ".png" if output_format.upper() == "PNG" else ".jpg"
+                    out_path = in_path.with_name(f"{in_path.stem}{suffix}{ext}")
+
+                    # Handle JPEG alpha flattening
+                    save_image = result_image
+                    if output_format.upper() == "JPEG" and save_image.mode == "RGBA":
+                        from PIL import Image as _PIL_Image
+                        bg = _PIL_Image.new("RGB", save_image.size, (255, 255, 255))
+                        bg.paste(save_image, mask=save_image.split()[-1])
+                        save_image = bg
+
+                    save_kwargs = {"optimize": True}
+                    if output_format.upper() == "JPEG":
+                        save_kwargs.update({"quality": 95})
+                    save_image.save(out_path, format=output_format.upper(), **save_kwargs)
+                    output_file_path = str(out_path)
+        except Exception as e:
+            logger.warning(f"Failed to save output image to disk: {e}")
+
+        # Also encode result to base64 for clients that want inline data
         result_base64 = image_processor.encode_image_to_base64(
             result_image,
             format=output_format
@@ -282,19 +309,18 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
             "success": True,
             "message": f"Background removed successfully using {model_name}",
             "output_image_base64": result_base64,
+            "output_file_path": output_file_path,
             "model_used": model_name,
             "processing_time_seconds": time.time() - start_time,
             "output_format": output_format,
             "image_size": image.size
         }
 
-
-
         return [TextContent(
             type="text",
             text=json.dumps(response)
         )]
-        
+
     except Exception as e:
         logger.error(f"Background removal failed: {e}")
         return [TextContent(type="text", text=f"Background removal failed: {str(e)}")]
@@ -341,8 +367,34 @@ async def handle_batch_remove_background(arguments: Dict[str, Any]) -> List[Text
             confidence_threshold=confidence_threshold
         )
 
-        # Encode results
-        results_base64 = []
+        # Save results next to input files when file paths are provided
+        output_file_paths: List[Optional[str]] = []
+        for idx, src in enumerate(images_data):
+            saved_path = None
+            try:
+                if not str(src).startswith('data:') and not ImageProcessor._is_base64(str(src)):
+                    in_path = Path(str(src))
+                    if in_path.exists() and in_path.is_file():
+                        suffix = os.getenv("OUTPUT_SUFFIX", "-no-bg")
+                        ext = ".png" if output_format.upper() == "PNG" else ".jpg"
+                        out_path = in_path.with_name(f"{in_path.stem}{suffix}{ext}")
+                        save_img = result_images[idx]
+                        if output_format.upper() == "JPEG" and save_img.mode == "RGBA":
+                            from PIL import Image as _PIL_Image
+                            bg = _PIL_Image.new("RGB", save_img.size, (255, 255, 255))
+                            bg.paste(save_img, mask=save_img.split()[-1])
+                            save_img = bg
+                        save_kwargs = {"optimize": True}
+                        if output_format.upper() == "JPEG":
+                            save_kwargs.update({"quality": 95})
+                        save_img.save(out_path, format=output_format.upper(), **save_kwargs)
+                        saved_path = str(out_path)
+            except Exception as e:
+                logger.warning(f"Failed to save batch output {idx}: {e}")
+            output_file_paths.append(saved_path)
+
+        # Encode results to base64
+        results_base64: List[str] = []
         for result_image in result_images:
             result_base64 = image_processor.encode_image_to_base64(
                 result_image,
@@ -355,13 +407,13 @@ async def handle_batch_remove_background(arguments: Dict[str, Any]) -> List[Text
             "success": True,
             "message": f"Batch background removal completed using {model_name}",
             "outputs_base64": results_base64,
+            "output_file_paths": output_file_paths,
             "model_used": model_name,
             "processing_time_seconds": time.time() - start_time,
             "output_format": output_format,
             "processed_count": len(results_base64),
             "image_sizes": [img.size for img in images],
         }
-
 
         return [TextContent(type="text", text=json.dumps(response))]
 
