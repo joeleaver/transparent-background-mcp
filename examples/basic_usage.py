@@ -68,8 +68,10 @@ async def main():
     
     # Test different models
     models_to_test = [
+        ("ben2-base", BEN2Model),
         ("inspyrenet-base", InSPyReNetModel),
-        ("yolo11m-seg", YOLOModel),
+        ("yolo11s-seg", YOLOModel),
+        ("yolo11l-seg", YOLOModel),
     ]
     
     # Only test BEN2 if we have good hardware

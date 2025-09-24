@@ -47,7 +47,7 @@ model_cache: Dict[str, Any] = {}
 class RemoveBackgroundRequest(BaseModel):
     """Request model for background removal."""
     image_data: str = Field(description="Image file path or base64 encoded image data")
-    model_name: str = Field(default="inspyrenet-base", description="Model to use for background removal")
+    model_name: str = Field(default="ben2-base", description="Model to use for background removal")
     output_format: str = Field(default="PNG", description="Output format (PNG, JPEG)")
     confidence_threshold: float = Field(default=0.5, description="Confidence threshold for detection")
 
@@ -55,7 +55,7 @@ class RemoveBackgroundRequest(BaseModel):
 class BatchRemoveBackgroundRequest(BaseModel):
     """Request model for batch background removal."""
     images_data: List[str] = Field(description="List of base64 encoded image data")
-    model_name: str = Field(default="inspyrenet-base", description="Model to use for background removal")
+    model_name: str = Field(default="ben2-base", description="Model to use for background removal")
     output_format: str = Field(default="PNG", description="Output format (PNG, JPEG)")
     confidence_threshold: float = Field(default=0.5, description="Confidence threshold for detection")
 
@@ -89,10 +89,10 @@ async def get_model_instance(model_name: str):
             from .models.inspyrenet_model import InSPyReNetModel
             model_cache[model_name] = InSPyReNetModel(model_name)
         else:
-            # Default to InSPyReNet for unknown models
-            logger.warning(f"Unknown model {model_name}, defaulting to inspyrenet-base")
-            from .models.inspyrenet_model import InSPyReNetModel
-            model_cache[model_name] = InSPyReNetModel("inspyrenet-base")
+            # Default to BEN2 for unknown models
+            logger.warning(f"Unknown model {model_name}, defaulting to ben2-base")
+            from .models.ben2_model import BEN2Model
+            model_cache[model_name] = BEN2Model("ben2-base")
 
     return model_cache[model_name]
 
@@ -114,8 +114,8 @@ async def handle_list_tools() -> List[Tool]:
                     "model_name": {
                         "type": "string",
                         "description": "Model to use for background removal",
-                        "enum": ["ben2-base", "inspyrenet-base", "yolo11n-seg", "yolo11s-seg", "yolo11m-seg", "yolo11l-seg", "yolo11x-seg"],
-                        "default": "inspyrenet-base"
+                        "enum": ["ben2-base", "inspyrenet-base", "yolo11s-seg", "yolo11l-seg"],
+                        "default": "ben2-base"
                     },
                     "output_format": {
                         "type": "string",
@@ -148,8 +148,8 @@ async def handle_list_tools() -> List[Tool]:
                     "model_name": {
                         "type": "string",
                         "description": "Model to use for background removal",
-                        "enum": ["ben2-base", "inspyrenet-base", "yolo11n-seg", "yolo11s-seg", "yolo11m-seg", "yolo11l-seg", "yolo11x-seg"],
-                        "default": "inspyrenet-base"
+                        "enum": ["ben2-base", "inspyrenet-base", "yolo11s-seg", "yolo11l-seg"],
+                        "default": "ben2-base"
                     },
                     "output_format": {
                         "type": "string",
@@ -181,7 +181,7 @@ async def handle_list_tools() -> List[Tool]:
                     "model_name": {
                         "type": "string",
                         "description": "YOLO model to use",
-                        "enum": ["yolo11n-seg", "yolo11s-seg", "yolo11m-seg", "yolo11l-seg", "yolo11x-seg"],
+                        "enum": ["yolo11s-seg", "yolo11l-seg"],
                         "default": "yolo11m-seg"
                     },
                     "target_classes": {
@@ -265,7 +265,7 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
     try:
         # Parse arguments
         image_data = arguments["image_data"]
-        model_name = arguments.get("model_name", "inspyrenet-base")
+        model_name = arguments.get("model_name", "ben2-base")
         output_format = arguments.get("output_format", "PNG")
         confidence_threshold = arguments.get("confidence_threshold", 0.5)
         
@@ -316,7 +316,7 @@ async def handle_batch_remove_background(arguments: Dict[str, Any]) -> List[Text
     try:
         # Parse arguments
         images_data = arguments["images_data"]
-        model_name = arguments.get("model_name", "inspyrenet-base")
+        model_name = arguments.get("model_name", "ben2-base")
         output_format = arguments.get("output_format", "PNG")
         confidence_threshold = arguments.get("confidence_threshold", 0.5)
         

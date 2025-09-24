@@ -50,18 +50,7 @@ class ModelManager:
                 "supported_formats": ["PNG", "JPEG"],
                 "batch_processing": True,
             },
-            "yolo11x-seg": {
-                "name": "YOLO11 Extra Large Segmentation",
-                "description": "Largest YOLO11 model for object-specific background removal",
-                "type": "segmentation",
-                "size_mb": 136,
-                "vram_requirement_gb": 2.8,
-                "performance": "Excellent",
-                "release_date": "2024-10",
-                "classes": 80,  # COCO classes
-                "supported_formats": ["PNG", "JPEG"],
-                "batch_processing": True,
-            },
+
             "yolo11l-seg": {
                 "name": "YOLO11 Large Segmentation",
                 "description": "Large YOLO11 model balancing performance and speed",
@@ -74,18 +63,7 @@ class ModelManager:
                 "supported_formats": ["PNG", "JPEG"],
                 "batch_processing": True,
             },
-            "yolo11m-seg": {
-                "name": "YOLO11 Medium Segmentation",
-                "description": "Medium YOLO11 model for balanced performance",
-                "type": "segmentation",
-                "size_mb": 50,
-                "vram_requirement_gb": 1.8,
-                "performance": "Good",
-                "release_date": "2024-10",
-                "classes": 80,
-                "supported_formats": ["PNG", "JPEG"],
-                "batch_processing": True,
-            },
+
             "yolo11s-seg": {
                 "name": "YOLO11 Small Segmentation",
                 "description": "Small YOLO11 model for faster processing",
@@ -98,18 +76,7 @@ class ModelManager:
                 "supported_formats": ["PNG", "JPEG"],
                 "batch_processing": True,
             },
-            "yolo11n-seg": {
-                "name": "YOLO11 Nano Segmentation",
-                "description": "Smallest YOLO11 model for minimal resource usage",
-                "type": "segmentation",
-                "size_mb": 6,
-                "vram_requirement_gb": 0.8,
-                "performance": "Fair",
-                "release_date": "2024-10",
-                "classes": 80,
-                "supported_formats": ["PNG", "JPEG"],
-                "batch_processing": True,
-            },
+
             "inspyrenet-base": {
                 "name": "InSPyReNet Base",
                 "description": "Stable, high-quality background removal model",
