@@ -80,6 +80,23 @@ No installation required! Use directly in your MCP client configuration:
 }
 ```
 
+#### Option 1a: Pre-install model dependencies with extras (no runtime installs)
+
+If you prefer everything to work out-of-the-box with no on-demand installs, use `uvx` with the appropriate extras to pre-install the model dependencies:
+
+- BEN2 (default, best quality):
+  - Windows/macOS/Linux:
+    - Command: `uvx --from "git+https://github.com/joeleaver/transparent-background-mcp.git#egg=transparent-background-mcp[ben2]" transparent-background-mcp-server`
+- YOLO (speed):
+  - `uvx --from "git+https://github.com/joeleaver/transparent-background-mcp.git#egg=transparent-background-mcp[yolo]" transparent-background-mcp-server`
+- InSPyReNet (portraits):
+  - `uvx --from "git+https://github.com/joeleaver/transparent-background-mcp.git#egg=transparent-background-mcp[inspyrenet]" transparent-background-mcp-server`
+- All models:
+  - `uvx --from "git+https://github.com/joeleaver/transparent-background-mcp.git#egg=transparent-background-mcp[all]" transparent-background-mcp-server`
+
+These install the optional dependencies defined in `pyproject.toml` ahead of time, avoiding runtime installation during first use.
+
+
 #### Option 2: Local Installation
 ```bash
 # Install from GitHub
