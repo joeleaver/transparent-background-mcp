@@ -571,6 +571,30 @@ async def handle_get_system_info(arguments: Dict[str, Any]) -> List[TextContent]
         return [TextContent(type="text", text=f"Get system info failed: {str(e)}")]
 
 
+# Optional background preloading of models to avoid first-call delays
+async def preload_models(preload_spec: str):
+    """Preload one or more models in the background.
+    Pass a comma-separated list of model names via TB_MCP_PRELOAD_MODELS.
+    Example: "inspyrenet-base,ben2-base".
+    """
+    try:
+        names = [n.strip() for n in preload_spec.split(',') if n.strip()]
+        if not names:
+            return
+        logger.info(f"Preloading models in background: {names}")
+        for name in names:
+            try:
+                model = await get_model_instance(name)
+                # Ensure weights/sessions are fully ready
+                if hasattr(model, 'load_model'):
+                    await model.load_model()
+                logger.info(f"Preloaded model: {name}")
+            except Exception as e:
+                logger.warning(f"Failed to preload model {name}: {e}")
+    except Exception as e:
+        logger.warning(f"Preload task error: {e}")
+
+
 async def main():
     """Main entry point for the MCP server."""
     # Set up environment
@@ -580,6 +604,15 @@ async def main():
     logger.info("Starting Transparent Background MCP Server")
     logger.info(f"System info: {hardware_detector.system_info}")
     logger.info(f"GPU available: {hardware_detector.gpu_info['available']}")
+
+    # Kick off optional background preloading
+    preload_spec = os.getenv("TB_MCP_PRELOAD_MODELS", "").strip()
+    if preload_spec:
+        try:
+            asyncio.create_task(preload_models(preload_spec))
+            logger.info(f"Scheduled model preload for: {preload_spec}")
+        except Exception as e:
+            logger.warning(f"Could not schedule preload task: {e}")
 
     # Run the server
     async with stdio_server() as (read_stream, write_stream):
