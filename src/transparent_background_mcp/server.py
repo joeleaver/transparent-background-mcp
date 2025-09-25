@@ -604,6 +604,20 @@ async def main():
     logger.info("Starting Transparent Background MCP Server")
     logger.info(f"System info: {hardware_detector.system_info}")
     logger.info(f"GPU available: {hardware_detector.gpu_info['available']}")
+    # Diagnostics to verify which code is running
+    try:
+        logger.info(f"Server module path: {__file__}")
+        import sys as _sys
+        logger.info(f"Python executable: {_sys.executable}")
+        logger.info(f"CWD: {os.getcwd()}")
+        try:
+            import rembg as _rembg
+            logger.info(f"rembg module path: {getattr(_rembg, '__file__', 'unknown')}")
+        except Exception as _e:
+            logger.info(f"rembg import failed: {_e}")
+    except Exception as _e:
+        logger.debug(f"Startup diagnostics logging failed: {_e}")
+
 
     # Kick off optional background preloading
     preload_spec = os.getenv("TB_MCP_PRELOAD_MODELS", "").strip()
