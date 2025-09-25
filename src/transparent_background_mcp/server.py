@@ -275,7 +275,7 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
     try:
         # Parse arguments
         image_data = arguments["image_data"]
-        model_name = arguments.get("model_name", "ben2-base")
+        model_name = arguments.get("model_name", os.getenv("DEFAULT_MODEL", "ben2-base"))
         output_format = arguments.get("output_format", "PNG")
         confidence_threshold = arguments.get("confidence_threshold", 0.5)
         # Structured logging for diagnostics
