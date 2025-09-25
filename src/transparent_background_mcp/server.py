@@ -25,6 +25,8 @@ from mcp.types import (
     ToolsCapability,
 )
 from pydantic import BaseModel, Field
+from contextlib import redirect_stdout
+import sys
 
 from .utils import HardwareDetector, ImageProcessor, ModelManager
 
@@ -35,6 +37,18 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+# Optional file logging via env TB_MCP_LOG_FILE
+log_file = os.getenv("TB_MCP_LOG_FILE")
+if log_file:
+    try:
+        from logging.handlers import RotatingFileHandler
+        fh = RotatingFileHandler(log_file, maxBytes=5_000_000, backupCount=2)
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(fh)
+        logger.info(f"File logging enabled: {log_file}")
+    except Exception as e:
+        logger.warning(f"Could not attach file logger: {e}")
 
 # Global instances
 hardware_detector = HardwareDetector()
@@ -76,21 +90,27 @@ server = Server("transparent-background-mcp")
 
 async def get_model_instance(model_name: str):
     """Get or create model instance."""
-    if model_name not in model_cache:
-        logger.info(f"Creating new model instance: {model_name}")
-        if model_name.startswith("ben2"):
-            from .models import BEN2Model
-            model_cache[model_name] = BEN2Model(model_name)
-        elif model_name.startswith("yolo11"):
-            from .models import YOLOModel
-            model_cache[model_name] = YOLOModel(model_name)
-        elif model_name.startswith("inspyrenet"):
-            from .models import InSPyReNetModel
-            model_cache[model_name] = InSPyReNetModel(model_name)
-        else:
-            logger.warning(f"Unknown model {model_name}, defaulting to ben2-base")
-            from .models import BEN2Model
-            model_cache[model_name] = BEN2Model("ben2-base")
+    t0 = time.perf_counter()
+    if model_name in model_cache:
+        logger.info(f"get_model_instance: cache hit for {model_name}")
+        return model_cache[model_name]
+
+    logger.info(f"get_model_instance: cache miss, creating {model_name}")
+    if model_name.startswith("ben2"):
+        from .models import BEN2Model
+        model_cache[model_name] = BEN2Model(model_name)
+    elif model_name.startswith("yolo11"):
+        from .models import YOLOModel
+        model_cache[model_name] = YOLOModel(model_name)
+    elif model_name.startswith("inspyrenet"):
+        from .models import InSPyReNetModel
+        model_cache[model_name] = InSPyReNetModel(model_name)
+    else:
+        logger.warning(f"Unknown model {model_name}, defaulting to ben2-base")
+        from .models import BEN2Model
+        model_cache[model_name] = BEN2Model("ben2-base")
+
+    logger.info(f"get_model_instance: created {model_name} in {time.perf_counter() - t0:.2f}s")
     return model_cache[model_name]
 
 
@@ -228,20 +248,22 @@ async def handle_list_tools() -> List[Tool]:
 async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
     """Handle tool calls."""
     try:
-        if name == "remove_background":
-            return await handle_remove_background(arguments)
-        elif name == "batch_remove_background":
-            return await handle_batch_remove_background(arguments)
-        elif name == "yolo_segment_objects":
-            return await handle_yolo_segment_objects(arguments)
-        elif name == "get_available_models":
-            return await handle_get_available_models(arguments)
-        elif name == "get_system_info":
-            return await handle_get_system_info(arguments)
+        # Ensure any third-party stdout is redirected to stderr during tool execution
+        with redirect_stdout(sys.stderr):
+            if name == "remove_background":
+                return await handle_remove_background(arguments)
+            elif name == "batch_remove_background":
+                return await handle_batch_remove_background(arguments)
+            elif name == "yolo_segment_objects":
+                return await handle_yolo_segment_objects(arguments)
+            elif name == "get_available_models":
+                return await handle_get_available_models(arguments)
+            elif name == "get_system_info":
+                return await handle_get_system_info(arguments)
 
-        else:
-            return [TextContent(type="text", text=f"Unknown tool: {name}")]
-    
+            else:
+                return [TextContent(type="text", text=f"Unknown tool: {name}")]
+
     except Exception as e:
         logger.error(f"Tool {name} failed: {e}")
         return [TextContent(type="text", text=f"Error: {str(e)}")]
@@ -256,31 +278,46 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
         model_name = arguments.get("model_name", "ben2-base")
         output_format = arguments.get("output_format", "PNG")
         confidence_threshold = arguments.get("confidence_threshold", 0.5)
-        
+        # Structured logging for diagnostics
+        input_kind = "path" if (not str(image_data).startswith('data:') and not ImageProcessor._is_base64(str(image_data))) else "base64"
+        redacted_info = (f"len={len(image_data)}" if input_kind == "base64" else str(Path(str(image_data)).name))
+        logger.info(f"remove_background: start model={model_name} output={output_format} input={input_kind} src={redacted_info}")
+
         # Load image (from file path or base64)
         image = image_processor.load_image(image_data)
-        
+        logger.info(f"remove_background: loaded image size={image.size}")
+
         # Resize if too large
         image = image_processor.resize_image_if_needed(image, max_size=(2048, 2048))
-        
+        logger.info(f"remove_background: resized image size={image.size}")
+
+        # Get model instance
+        logger.info(f"remove_background: acquiring model instance for {model_name}...")
+
         # Get model instance
         model = await get_model_instance(model_name)
-        
+        logger.info(f"remove_background: model ready: {type(model).__name__}")
+
+        # Process image
+        logger.info("remove_background: starting inference...")
+
         # Process image
         result_image = await model.remove_background(
             image,
             confidence_threshold=confidence_threshold
         )
+        logger.info("remove_background: inference completed")
 
         # Optionally save result to disk if input was a file path
         output_file_path = None
         try:
-            if not image_data.startswith('data:') and not ImageProcessor._is_base64(image_data):
-                in_path = Path(image_data)
+            if not str(image_data).startswith('data:') and not ImageProcessor._is_base64(str(image_data)):
+                in_path = Path(str(image_data))
                 if in_path.exists() and in_path.is_file():
                     suffix = os.getenv("OUTPUT_SUFFIX", "-no-bg")
                     ext = ".png" if output_format.upper() == "PNG" else ".jpg"
                     out_path = in_path.with_name(f"{in_path.stem}{suffix}{ext}")
+                    logger.info(f"remove_background: saving output to disk at {out_path}")
 
                     # Handle JPEG alpha flattening
                     save_image = result_image
@@ -303,6 +340,8 @@ async def handle_remove_background(arguments: Dict[str, Any]) -> List[TextConten
             result_image,
             format=output_format
         )
+        logger.info(f"remove_background: encoded output base64 length={len(result_base64)}")
+        logger.info(f"remove_background: done in {time.time() - start_time:.2f}s")
 
         # Return JSON response
         response = {
